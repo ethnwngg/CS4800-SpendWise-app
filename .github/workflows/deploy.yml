@@ -21,7 +21,7 @@ jobs:
     - name: Deploy to EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "
-          cd /home/ec2-user/YOUR_REPO &&
+          cd /home/ec2-user/CS4800-SpendWise-app &&
           git pull &&
           sudo systemctl restart spendwise
         "
