@@ -151,7 +151,9 @@ button.primary:hover {
 </div>
 
 <script>
-const baseURL = "http://127.0.0.1:8000";
+const baseURL = window.location.hostname.includes("localhost")
+  ? "http://127.0.0.1:8000"
+  : "http://YOUR_EC2_IP:8000";
 
 /* TAB SWITCHING */
 function showTab(tabId) {
