@@ -1,6 +1,5 @@
 name: Deploy SpendWise
 
-
 on:
   push:
     branches: [ "main" ]
