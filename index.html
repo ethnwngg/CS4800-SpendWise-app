@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SpendWise</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    margin: 0;
+    background: #eef2f7;
+}
+
+/* Header */
+.header {
+    background: #2563eb;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* Tabs */
+.nav {
+    display: flex;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.nav button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: white;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.nav button.active {
+    background: #2563eb;
+    color: white;
+}
+
+/* Content */
+.container {
+    max-width: 800px;
+    margin: 20px auto;
+    padding: 20px;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+button.primary {
+    width: 100%;
+    padding: 10px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button.primary:hover {
+    background: #1e40af;
+}
+
+.transaction {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.income { color: green; }
+.expense { color: red; }
+
+.hidden { display: none; }
+</style>
+</head>
+
+<body>
+
+<div class="header">💰 SpendWise</div>
+
+<!-- NAVIGATION -->
+<div class="nav">
+    <button onclick="showTab('dashboard')" class="active">Dashboard</button>
+    <button onclick="showTab('add')">Add</button>
+    <button onclick="showTab('transactions')">Transactions</button>
+    <button onclick="showTab('summary')">Summary</button>
+</div>
+
+<div class="container">
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="card tab">
+        <h2>Welcome</h2>
+        <input type="text" id="username" placeholder="Enter Username">
+        <button class="primary" onclick="createUser()">Create User</button>
+    </div>
+
+    <!-- ADD -->
+    <div id="add" class="card tab hidden">
+        <h2>Add Transaction</h2>
+
+        <input type="number" id="amount" placeholder="Amount">
+
+        <select id="type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+        </select>
+
+        <input type="text" id="category" placeholder="Category">
+        <input type="text" id="description" placeholder="Description">
+        <input type="date" id="date">
+
+        <button class="primary" onclick="addTransaction()">Add Transaction</button>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div id="transactions" class="card tab hidden">
+        <h2>Transactions</h2>
+        <button class="primary" onclick="loadTransactions()">Load Transactions</button>
+        <div id="transactionsList"></div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div id="summary" class="card tab hidden">
+        <h2>Monthly Summary</h2>
+
+        <input type="number" id="year" placeholder="Year">
+        <input type="number" id="month" placeholder="Month (1-12)">
+
+        <button class="primary" onclick="getSummary()">Get Summary</button>
+
+        <div id="summaryResult"></div>
+    </div>
+
+</div>
+
+<script>
+const baseURL = "http://127.0.0.1:8000";
+
+/* TAB SWITCHING */
+function showTab(tabId) {
+    document.querySelectorAll(".tab").forEach(tab => tab.classList.add("hidden"));
+    document.getElementById(tabId).classList.remove("hidden");
+
+    document.querySelectorAll(".nav button").forEach(btn => btn.classList.remove("active"));
+    event.target.classList.add("active");
+}
+
+/* CREATE USER */
+function createUser() {
+    const username = document.getElementById("username").value;
+
+    fetch(`${baseURL}/users`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username })
+    })
+    .then(res => res.json())
+    .then(data => alert(data.message))
+    .catch(() => alert("Error creating user"));
+}
+
+/* ADD TRANSACTION */
+function addTransaction() {
+    const username = document.getElementById("username").value;
+
+    const data = {
+        amount: parseFloat(document.getElementById("amount").value),
+        type: document.getElementById("type").value,
+        category: document.getElementById("category").value,
+        description: document.getElementById("description").value,
+        date: document.getElementById("date").value
+    };
+
+    fetch(`${baseURL}/transactions/${username}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => alert(data.message))
+    .catch(() => alert("Error adding transaction"));
+}
+
+/* LOAD TRANSACTIONS */
+function loadTransactions() {
+    const username = document.getElementById("username").value;
+
+    fetch(`${baseURL}/transactions/${username}`)
+    .then(res => res.json())
+    .then(data => {
+        const container = document.getElementById("transactionsList");
+        container.innerHTML = "";
+
+        data.forEach(t => {
+            const div = document.createElement("div");
+            div.className = "transaction " + t.type;
+            div.innerHTML = `<strong>$${t.amount}</strong> - ${t.category} (${t.date})`;
+            container.appendChild(div);
+        });
+    });
+}
+
+/* SUMMARY */
+function getSummary() {
+    const username = document.getElementById("username").value;
+    const year = document.getElementById("year").value;
+    const month = document.getElementById("month").value;
+
+    fetch(`${baseURL}/summary/monthly/${username}/${year}/${month}`)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById("summaryResult").innerHTML = `
+            Income: $${data.income} <br>
+            Expenses: $${data.expenses} <br>
+            Net: $${data.net}
+        `;
+    });
+}
+</script>
+
+</body>
+</html>
