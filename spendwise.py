@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
 
 
-# MongoDB connection
+## MongoDB connection
 MONGODB_URI = "mongodb+srv://ethanwong_db_user:crngf1cp7rK0tmak@finance-db.hjw6tbv.mongodb.net/?appName=finance-db"
 client = MongoClient(MONGODB_URI)
 db = client["spend-wise"]
