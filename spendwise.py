@@ -7,7 +7,7 @@ from pymongo import MongoClient
 
 
 ## MongoDB connection
-MONGODB_URI = "mongodb+srv://ethanwong_db_user:crngf1cp7rK0tmak@finance-db.hjw6tbv.mongodb.net/?appName=finance-db"
+MONGODB_URI = "mongodb+srv://ethanwong_db_user:WXTc9iXUX6Byphjd@finance-db.hjw6tbv.mongodb.net/?appName=finance-db"
 client = MongoClient(MONGODB_URI)
 db = client["spend-wise"]
 
