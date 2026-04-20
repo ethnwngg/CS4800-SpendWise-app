@@ -174,3 +174,4 @@ def delete_transaction(username: str):
 def home():
     with open("index.html") as f:
         return f.read()
+    
