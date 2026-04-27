@@ -31,9 +31,17 @@ class UserRegister(BaseModel):
     username: str
     password: str
 
+
 class UserLogin(BaseModel):
     username: str
     password: str
+
+
+class ChangePassword(BaseModel):
+    username: str
+    old_password: str
+    new_password: str
+
 
 class Transaction(BaseModel):
     amount: float
@@ -105,6 +113,48 @@ def login(user: UserLogin):
         "first": db_user.get("first", ""),
         "last": db_user.get("last", "")
     }
+
+
+# -----------------------------
+# Change Password
+# -----------------------------
+@app.post("/change-password")
+def change_password(data: ChangePassword):
+    user = users.find_one({"username": data.username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if not bcrypt.checkpw(data.old_password.encode(), user["password"]):
+        raise HTTPException(status_code=401, detail="Old password is incorrect")
+
+    hashed_pw = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt())
+
+    users.update_one(
+        {"username": data.username},
+        {"$set": {"password": hashed_pw}}
+    )
+
+    return {"success": True, "message": "Password updated successfully"}
+
+
+# -----------------------------
+# Delete Account
+# -----------------------------
+@app.delete("/delete-account/{username}")
+def delete_account(username: str):
+    user = users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Delete user
+    users.delete_one({"username": username})
+
+    # Delete all their transactions
+    transactions.delete_many({"username": username})
+
+    return {"success": True, "message": "Account deleted successfully"}
+
+
 
 # -----------------------------
 # Add Transaction

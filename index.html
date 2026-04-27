@@ -692,7 +692,9 @@ body.dark .subtab-item:hover {
                             <h3>Account Info</h3>
                             <p class="small">Logged in as: <span id="currentUserText"></span></p>
                             <h3 style="margin-top:20px;">Change Password</h3>
+                            <input id="oldPass" type="password" placeholder="Old Password">
                             <input id="newPass" type="password" placeholder="New Password">
+                            <div id="accountError" class="login-error" style="display:none;"></div>
                             <button onclick="changePassword()">Update Password</button>
                             <h3 style="margin-top:20px;">Delete Account</h3>
                             <button style="background:#e11d48;" onclick="deleteAccount()">Delete Account</button>
@@ -1562,8 +1564,45 @@ function renderAllCharts() {
 /* ---------- SETTINGS ACCOUNT (STUBS) ---------- */
 
 function changePassword() {
-    alert("Password change endpoint not implemented in backend yet.");
+    const oldPass = document.getElementById("oldPass").value.trim();
+    const newPass = document.getElementById("newPass").value.trim();
+
+    // Inline validation
+    if (!oldPass || !newPass) {
+        showAccountError("Please fill in all fields.");
+        return;
+    }
+
+    fetch("/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            username: currentUser,     // your logged‑in username
+            old_password: oldPass,
+            new_password: newPass
+        })
+    })
+    .then(async r => {
+        const data = await r.json().catch(() => ({}));
+
+        // Backend error (wrong old password, user not found, etc.)
+        if (!r.ok || !data.success) {
+            showAccountError(data.detail || "Could not change password.");
+            return;
+        }
+
+        // SUCCESS → show popup
+        showPopup("Password changed successfully!", "success");
+
+        // Clear fields
+        document.getElementById("oldPass").value = "";
+        document.getElementById("newPass").value = "";
+    })
+    .catch(() => {
+        showAccountError("Network error. Try again.");
+    });
 }
+
 
 function deleteAccount() {
     if (!currentUser) return;
