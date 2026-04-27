@@ -771,6 +771,9 @@ function logout() {
     localStorage.removeItem("sw-user");
     document.getElementById("app").style.display = "none";
     document.getElementById("authPage").style.display = "flex";
+
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginPass").value = "";
 }
 
 /* ---------- UI SETUP ---------- */
@@ -1477,6 +1480,14 @@ function toggleMenu(event, idx) {
 document.addEventListener("click", () => {
     document.querySelectorAll(".menu-dropdown").forEach(m => m.style.display = "none");
 });
+
+// Enable pressing "Enter" to submit the login form
+document.getElementById("loginPass").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") {
+        login();
+    }
+});
+
 
 
 /* ---------- ON LOAD ---------- */
