@@ -234,6 +234,12 @@ body.dark .theme-toggle-circle {
 .section { display: none; }
 .section.active { display: block; }
 
+@media (max-width: 768px) {
+    .section {
+        display: block !important;
+    }
+}
+
 /* DASHBOARD CARDS */
 .cards {
     display: flex;
@@ -341,6 +347,15 @@ body.dark .transaction-btn.delete {
     border-radius: 12px;
     box-shadow: var(--shadow);
     height: fit-content;
+}
+
+@media (max-width: 768px) {
+    .subtab-menu {
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+        height: auto;
+    }
 }
 
 .subtab-item {
