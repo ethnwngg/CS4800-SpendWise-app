@@ -395,6 +395,46 @@ body.dark .subtab-item:hover {
     color: #b91c1c;
 }
 
+.popup-message {
+    position: fixed;
+    bottom: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: var(--shadow);
+    transition: bottom 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    z-index: 9999;
+}
+
+.popup-message.show {
+    bottom: 30px;
+    opacity: 1;
+}
+
+
+.login-error {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: var(--shadow);
+    animation: fadeSlide 0.3s ease;
+}
+
+@keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
 /* MODAL */
 .modal-backdrop {
     position: fixed;
@@ -436,6 +476,7 @@ body.dark .subtab-item:hover {
         <h2><span style="color:#22c55e;">$</span>pendWise Login</h2>
         <input id="loginUser" placeholder="Username">
         <input id="loginPass" type="password" placeholder="Password">
+        <div id="loginError" class="login-error" style="display:none;"></div>
         <button onclick="login()">Login</button>
         <div class="switch" onclick="toggleAuth()">Create Account</div>
     </div>
@@ -446,6 +487,7 @@ body.dark .subtab-item:hover {
         <input id="regLast" placeholder="Last Name">
         <input id="regUser" placeholder="Username">
         <input id="regPass" type="password" placeholder="Password">
+        <div id="registerError" class="login-error" style="display:none;"></div>
         <button onclick="register()">Register</button>
         <div class="switch" onclick="toggleAuth()">Back to Login</div>
     </div>
@@ -660,8 +702,8 @@ body.dark .subtab-item:hover {
                             <input id="monthlyBudget" type="number" placeholder="Monthly budget">
                             <button onclick="saveMonthlyBudget()">Save</button>
                             <h3 style="margin-top:20px;">Category Budgets</h3>
-                            <p class="small">Format: Food:300, Shopping:200</p>
-                            <input id="categoryBudgets" placeholder="Food:300, Shopping:200">
+                            <p class="small">Format: Food: 300, Shopping: 200</p>
+                            <input id="categoryBudgets" placeholder="Food: 300, Shopping: 200">
                             <button onclick="saveCategoryBudgets()">Save</button>
                         </div>
                         <div id="settings-appearance" class="settings-panel">
@@ -708,6 +750,23 @@ let budgetBarChart = null;
 function toggleAuth() {
     const loginBox = document.getElementById("loginBox");
     const registerBox = document.getElementById("registerBox");
+
+    const loginError = document.getElementById("loginError");
+    const registerError = document.getElementById("registerError");
+
+    // Hide both error boxes when switching
+    if (loginError) {
+        loginError.style.display = "none";
+        loginError.textContent = "";
+    }
+    if (registerError) {
+        registerError.style.display = "none";
+        registerError.textContent = "";
+    }
+
+    document.querySelectorAll("#loginBox input, #registerBox input").forEach(i => i.value = "");
+
+    // Toggle visibility
     if (loginBox.style.display === "none") {
         loginBox.style.display = "block";
         registerBox.style.display = "none";
@@ -717,14 +776,16 @@ function toggleAuth() {
     }
 }
 
+
 function register() {
     const first = document.getElementById("regFirst").value.trim();
     const last = document.getElementById("regLast").value.trim();
     const username = document.getElementById("regUser").value.trim();
     const password = document.getElementById("regPass").value;
 
+    // Inline validation error
     if (!first || !last || !username || !password) {
-        alert("Please fill in all fields.");
+        showRegisterError("Please fill in all fields.");
         return;
     }
 
@@ -736,21 +797,33 @@ function register() {
     .then(async r => {
         if (!r.ok) {
             const t = await r.json().catch(() => ({}));
-            alert(t.detail || "Error creating account");
+            showRegisterError(t.detail || "Error creating account.");
             return;
         }
-        alert("Account created successfully. You can now log in.");
+
+        // SUCCESS → switch back to login
         toggleAuth();
+
+        // Success popup
+        showPopup("Account created! You can now log in.", "success");
+
+        // Clear error box
+        const box = document.getElementById("registerError");
+        box.style.display = "none";
+        box.textContent = "";
     })
-    .catch(() => alert("Network error"));
+    .catch(() => {
+        showRegisterError("Network error. Try again.");
+    });
 }
+
 
 function login() {
     const username = document.getElementById("loginUser").value.trim();
     const password = document.getElementById("loginPass").value;
 
     if (!username || !password) {
-        alert("Enter username and password.");
+        showLoginError("Enter username and password.");
         return;
     }
 
@@ -762,22 +835,37 @@ function login() {
     .then(r => r.json())
     .then(data => {
         if (!data.success) {
-            alert("Invalid credentials");
+            showLoginError("Invalid username or password.");
             return;
         }
+
+        // SUCCESS
         currentUser = username;
         localStorage.setItem("sw-user", currentUser);
         localStorage.setItem("sw-first", data.first || "");
         localStorage.setItem("sw-last", data.last || "");
+
         document.getElementById("authPage").style.display = "none";
         document.getElementById("app").style.display = "block";
+
         setupUserUI();
         loadTransactions();
+
         const lastPage = localStorage.getItem("sw-last-page") || "dashboard";
         show(lastPage);
     })
-    .catch(() => alert("Network error"));
+    .catch(() => {
+        showLoginError("Network error. Try again.");
+    });
 }
+
+
+function showLoginError(msg) {
+    const box = document.getElementById("loginError");
+    box.textContent = msg;
+    box.style.display = "block";
+}
+
 
 function logout() {
     currentUser = null;
@@ -787,6 +875,7 @@ function logout() {
 
     document.getElementById("loginUser").value = "";
     document.getElementById("loginPass").value = "";
+    document.getElementById("loginError").style.display = "none";
 }
 
 /* ---------- UI SETUP ---------- */
@@ -921,6 +1010,8 @@ function addTransaction() {
         console.error("Network error:", err);
         alert("Network error");
     });
+
+    showPopup("Transaction added!");
 }
 
 function loadTransactions() {
@@ -976,7 +1067,6 @@ function renderTransactions() {
 
 function deleteTransaction(idx) {
     const t = transactions[idx];
-    if (!t || !confirm("Delete this transaction?")) return;
 
     fetch(`/transactions/${currentUser}/${t._id}`, {
         method: "DELETE"
@@ -989,6 +1079,8 @@ function deleteTransaction(idx) {
             return;
         }
         loadTransactions();
+
+        showPopup("Transaction deleted");
     })
     .catch(err => {
         console.error("Network error:", err);
@@ -1145,6 +1237,8 @@ function saveMonthlyBudget() {
         return;
     }
     localStorage.setItem(`sw-${currentUser}-monthlyBudget`, val);
+    showPopup("Monthly budget saved");
+
     renderBudgetSummary();
     checkBudgetAlerts();
 }
@@ -1477,6 +1571,26 @@ function deleteAccount() {
     alert("Account deletion endpoint not implemented in backend yet.");
 }
 
+
+// Show a temporary popup message at the bottom of the screen
+function showPopup(message) {
+    const popup = document.createElement("div");
+    popup.className = "popup-message";
+    popup.textContent = message;
+
+    document.body.appendChild(popup);
+
+    setTimeout(() => {
+        popup.classList.add("show");
+    }, 10);
+
+    setTimeout(() => {
+        popup.classList.remove("show");
+        setTimeout(() => popup.remove(), 300);
+    }, 2000);
+}
+
+
 /* ---------- TOGGLE MENU ---------- */
 
 function toggleMenu(event, idx) {
@@ -1488,6 +1602,26 @@ function toggleMenu(event, idx) {
     const menu = document.getElementById(`menu-${idx}`);
     menu.style.display = menu.style.display === "flex" ? "none" : "flex";
 }
+
+
+
+function saveCategoryBudgets() {
+    const input = document.getElementById("categoryBudgets").value;
+
+    // Convert "Food: 300, Shopping: 200" → object
+    const parts = input.split(",").map(x => x.trim());
+    const budgets = {};
+
+    parts.forEach(p => {
+        const [cat, amt] = p.split(":").map(x => x.trim());
+        if (cat && amt) budgets[cat] = Number(amt);
+    });
+
+    localStorage.setItem("categoryBudgets", JSON.stringify(budgets));
+
+    showPopup("Category budgets saved!");
+}
+
 
 // Close menus when clicking anywhere else
 document.addEventListener("click", () => {
@@ -1501,6 +1635,12 @@ document.getElementById("loginPass").addEventListener("keypress", function(e) {
     }
 });
 
+
+function showRegisterError(msg) {
+    const box = document.getElementById("registerError");
+    box.textContent = msg;
+    box.style.display = "block";
+}
 
 
 /* ---------- ON LOAD ---------- */
