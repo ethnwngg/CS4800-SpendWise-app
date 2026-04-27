@@ -435,6 +435,34 @@ body.dark .subtab-item:hover {
 }
 
 
+.delete-warning {
+    background: #fee2e2;
+    border: 1px solid #fca5a5;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+.confirm-delete-btn {
+    background: #dc2626;
+    color: white;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.cancel-delete-btn {
+    background: #e5e7eb;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+
+
 /* MODAL */
 .modal-backdrop {
     position: fixed;
@@ -697,7 +725,17 @@ body.dark .subtab-item:hover {
                             <div id="accountError" class="login-error" style="display:none;"></div>
                             <button onclick="changePassword()">Update Password</button>
                             <h3 style="margin-top:20px;">Delete Account</h3>
-                            <button style="background:#e11d48;" onclick="deleteAccount()">Delete Account</button>
+
+                            <!-- Inline confirmation box -->
+                            <div id="deleteConfirm" class="delete-warning" style="display:none;">
+                                    <p>This will permanently delete your account and all associated data.</p>
+                                    <button class="confirm-delete-btn" onclick="confirmDeleteAccount()">Yes, delete my account</button>
+                                    <button class="cancel-delete-btn" onclick="cancelDelete()">Cancel</button>
+                            </div>
+
+                            <button id="deleteBtn" style="background:#e11d48;" onclick="deleteAccount()">
+                                Delete Account
+                            </button>
                         </div>
                         <div id="settings-budgets" class="settings-panel">
                             <h3>Monthly Budget</h3>
@@ -1605,10 +1643,69 @@ function changePassword() {
 
 
 function deleteAccount() {
-    if (!currentUser) return;
-    if (!confirm("This will delete your account data (not implemented in backend). Continue?")) return;
-    alert("Account deletion endpoint not implemented in backend yet.");
+    // Show the inline confirmation box
+    document.getElementById("deleteConfirm").style.display = "block";
+
+    // Hide the original delete button
+    document.getElementById("deleteBtn").style.display = "none";
 }
+
+
+function confirmDeleteAccount() {
+    if (!currentUser) {
+        showPopup("Error: No user is logged in.", "error");
+        return;
+    }
+
+    console.log("Deleting user:", currentUser);
+
+    fetch(`/delete-account/${currentUser}`, {
+        method: "DELETE"
+    })
+    .then(async r => {
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok || !data.success) {
+            showPopup(data.detail || "Could not delete account.", "error");
+            return;
+        }
+
+        showPopup("Your account has been deleted.", "success");
+
+        // Clear session
+        currentUser = null;
+        localStorage.removeItem("currentUser");
+
+        // Redirect to login
+        showLoginPage();
+    })
+    .catch(() => {
+        showPopup("Network error. Try again.", "error");
+    });
+}
+
+function showLoginPage() {
+    // Hide the main app
+    document.getElementById("app").style.display = "none";
+
+    // Show the auth page
+    const auth = document.getElementById("authPage");
+    auth.style.display = "flex";
+    auth.style.justifyContent = "center";
+    auth.style.alignItems = "center";
+
+    // Show login box, hide register box
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("registerBox").style.display = "none";
+
+    // Clear login fields
+    document.getElementById("loginUser").value = "";
+    document.getElementById("loginPass").value = "";
+
+    // Focus username
+    document.getElementById("loginUser").focus();
+}
+
 
 
 // Show a temporary popup message at the bottom of the screen
@@ -1679,6 +1776,16 @@ function showRegisterError(msg) {
     const box = document.getElementById("registerError");
     box.textContent = msg;
     box.style.display = "block";
+}
+
+function deleteAccount() {
+    document.getElementById("deleteConfirm").style.display = "block";
+    document.getElementById("deleteBtn").style.display = "none";
+}
+
+function cancelDelete() {
+    document.getElementById("deleteConfirm").style.display = "none";
+    document.getElementById("deleteBtn").style.display = "inline-block";
 }
 
 
