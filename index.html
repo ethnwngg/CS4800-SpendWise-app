@@ -159,12 +159,6 @@ body.dark .theme-toggle-circle {
     height: calc(100vh - 60px);
 }
 
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        height: auto;
-    }
-}
 
 .transaction-menu {
     position: relative;
@@ -352,6 +346,13 @@ body.dark .transaction-btn.delete {
     box-shadow: var(--shadow);
     height: fit-content;
 }
+
+@media (max-width: 480px) {
+    .subtab-menu {
+        width: 120px;
+    }
+}
+
 
 @media (max-width: 768px) {
     .subtab-menu {
