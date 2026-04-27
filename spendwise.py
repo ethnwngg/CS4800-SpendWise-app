@@ -4,6 +4,7 @@ from datetime import date, datetime
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
+from bson import ObjectId
 import bcrypt
 
 # -----------------------------
@@ -25,6 +26,8 @@ app = FastAPI(title="SpendWise API")
 # Data Models
 # -----------------------------
 class UserRegister(BaseModel):
+    first: str
+    last: str
     username: str
     password: str
 
@@ -51,6 +54,21 @@ app.add_middleware(
 )
 
 # -----------------------------
+# Helpers
+# -----------------------------
+def serialize_transaction(doc):
+    """Convert MongoDB document to JSON‑friendly dict with string _id."""
+    return {
+        "_id": str(doc["_id"]),
+        "username": doc["username"],
+        "amount": doc["amount"],
+        "type": doc["type"],
+        "category": doc.get("category", ""),
+        "description": doc.get("description", ""),
+        "date": doc["date"],
+    }
+
+# -----------------------------
 # Register User
 # -----------------------------
 @app.post("/register")
@@ -61,6 +79,8 @@ def register(user: UserRegister):
     hashed_pw = bcrypt.hashpw(user.password.encode("utf-8"), bcrypt.gensalt())
 
     users.insert_one({
+        "first": user.first,
+        "last": user.last,
         "username": user.username,
         "password": hashed_pw
     })
@@ -80,7 +100,11 @@ def login(user: UserLogin):
     if not bcrypt.checkpw(user.password.encode("utf-8"), db_user["password"]):
         return {"success": False}
 
-    return {"success": True}
+    return {
+        "success": True,
+        "first": db_user.get("first", ""),
+        "last": db_user.get("last", "")
+    }
 
 # -----------------------------
 # Add Transaction
@@ -99,15 +123,45 @@ def add_transaction(username: str, t: Transaction):
         "date": t.date.isoformat()
     }
 
-    transactions.insert_one(transaction_data)
-    return {"message": "Transaction added"}
+    result = transactions.insert_one(transaction_data)
+    return {"message": "Transaction added", "id": str(result.inserted_id)}
 
 # -----------------------------
-# Get All Transactions
+# Get All Transactions (for user)
 # -----------------------------
 @app.get("/transactions/{username}")
 def get_transactions(username: str):
-    return list(transactions.find({"username": username}, {"_id": 0}))
+    docs = transactions.find({"username": username})
+    return [serialize_transaction(d) for d in docs]
+
+# -----------------------------
+# Delete Single Transaction
+# -----------------------------
+@app.delete("/transactions/{username}/{transaction_id}")
+def delete_single_transaction(username: str, transaction_id: str):
+    # Ensure user exists (optional but nice)
+    if not users.find_one({"username": username}):
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        oid = ObjectId(transaction_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid transaction id")
+
+    result = transactions.delete_one({"_id": oid, "username": username})
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+
+    return {"deleted": True}
+
+# -----------------------------
+# Delete All Transactions (for user)
+# -----------------------------
+@app.delete("/transactions/{username}")
+def delete_all_transactions(username: str):
+    result = transactions.delete_many({"username": username})
+    return {"deleted": result.deleted_count}
 
 # -----------------------------
 # Monthly Summary
@@ -160,18 +214,9 @@ def yearly_summary(username: str, year: int):
     }
 
 # -----------------------------
-# Delete All Transactions
-# -----------------------------
-@app.delete("/transactions/{username}")
-def delete_transaction(username: str):
-    result = transactions.delete_many({"username": username})
-    return {"deleted": result.deleted_count}
-
-# -----------------------------
 # Serve index.html
 # -----------------------------
 @app.get("/", response_class=HTMLResponse)
 def home():
     with open("index.html") as f:
         return f.read()
-    
