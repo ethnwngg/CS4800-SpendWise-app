@@ -754,49 +754,20 @@ body.dark .subtab-item:hover {
                     line-height:1.6;
                     margin:0;
                 ">
-                    Your personal hub for managing income, expenses, and budgets with clarity and precision.
-                    Stay informed, review your financial activity, and update your budgets or transactions whenever you need.
+                    Your space for organizing income, expenses, and budgets with clarity.
+                    Start by creating your budgets, then add your transactions as you go.<br>
+                    With each step, you’ll build a clearer picture of your financial activity and stay in control of your money.
                 </p>                
             
                 <div style="margin-top:12px; display:flex; gap:10px;">
                     <button onclick="show('createBudget')" style="width:auto;">Create Budget</button>
-                    <button onclick="show('add')" style="width:auto;">Add Transaction</button>
                 </div>
             </div>
-
-                <!-- Welcome banner -->
-                <div id="welcomeBanner" style="
-                    display:none;
-                    background:var(--bg-card);
-                    padding:15px 20px;
-                    border-radius:10px;
-                    box-shadow:var(--shadow);
-                    margin-bottom:20px;
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                ">
-                    <div>
-                        <strong>Welcome back, <span id="bannerName"></span>.</strong>
-                        <div style="color:var(--text-muted); font-size:14px;">
-                            Your financial dashboard is ready.
-                        </div>
-                    </div>
-                    <button onclick="dismissBanner()" style="
-                        background:none;
-                        border:none;
-                        color:var(--primary);
-                        cursor:pointer;
-                        font-weight:600;
-                        width:auto;
-                        margin-top:0;
-                    ">Dismiss</button>
-                </div>
 
                 <div class="cards">
                     <div class="card income"><h3>Income</h3><p id="inc">$0</p></div>
                     <div class="card expense"><h3>Expenses</h3><p id="exp">$0</p></div>
-                    <div class="card net"><h3>Net</h3><p id="net">$0</p></div>
+                    <div class="card net"><h3>Available Funds</h3><p id="net">$0</p></div>
                 </div>
 
                 <div id="budgetAlert"></div>
@@ -887,7 +858,7 @@ body.dark .subtab-item:hover {
                 <h2>Add Transaction</h2>
 
             <div class="select-wrapper">
-                <select id="type" required>
+                <select id="type" required onchange="handleTransactionTypeChange()">
                     <option value="" disabled selected>Select type (Income adds to available funds)</option>
                     <option value="income">Income</option>
                     <option value="expense">Expense</option>
@@ -1299,7 +1270,7 @@ function addTransaction() {
         amountEl.style.borderColor = "#d0d4e4";
     }
 
-    if (!categoryEl.value) {
+    if (type === "expense" && !categoryEl.value) {
         categoryError.textContent = "Please select a category.";
         categoryError.style.display = "block";
         categoryEl.style.borderColor = "red";
@@ -1308,7 +1279,6 @@ function addTransaction() {
         categoryError.style.display = "none";
         categoryEl.style.borderColor = "#d0d4e4";
     }
-
 
     if (!dateEl.value) {
         dateError.textContent = "Please select a date.";
@@ -1322,7 +1292,7 @@ function addTransaction() {
 
     const payload = {
         amount: amountVal,
-        category: categoryEl.value || "Uncategorized",
+        category: type === "expense" ? categoryEl.value : "income",
         description: descEl.value || "",
         date: dateEl.value,
         type: typeEl.value
@@ -1580,24 +1550,44 @@ function renderDashboardOverviewChart() {
         else if (t.type === "expense") expTotal += t.amount;
     });
 
+    const availableFunds = incTotal - expTotal;
+
     if (dashboardOverviewChart) dashboardOverviewChart.destroy();
 
     dashboardOverviewChart = new Chart(ctx, {
         type: "doughnut",
         data: {
-            labels: ["Income", "Expenses"],
+            labels: ["Income", "Expenses", "Available Funds"],
             datasets: [{
-                data: [incTotal, expTotal],
-                backgroundColor: ["#22c55e", "#ef4444"]
+                data: [
+                    incTotal,
+                    expTotal,
+                    availableFunds <= 0 ? 0.0001 : availableFunds
+                ],
+                backgroundColor: [
+                    "#22c55e", // green
+                    "#ef4444", // red
+                    "#3b82f6"  // blue
+                ]
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || "";
+                            const value = context.raw;
+                            return `${label}: $${value.toLocaleString()}`;
+                        }
+                    }
+                }
+            }
         }
     });
 }
-
 
 
 function parseCategoryBudgets(str) {
@@ -1811,6 +1801,33 @@ function renderCreateBudgetSummary() {
     });
 }
 
+function handleTransactionTypeChange() {
+    const type = document.getElementById("type").value;
+    const categorySelect = document.getElementById("category");
+    const categoryError = document.getElementById("categoryError");
+
+    if (type === "income") {
+        // Disable category for income
+        categorySelect.disabled = true;
+        categorySelect.style.opacity = "0.5";
+        categorySelect.value = "";
+
+        // Remove required validation
+        categorySelect.removeAttribute("required");
+
+        // Clear any error message
+        categoryError.textContent = "";
+    } else {
+        // Enable category for expenses
+        categorySelect.disabled = false;
+        categorySelect.style.opacity = "1";
+
+        // Make category required again
+        categorySelect.setAttribute("required", "true");
+    }
+}
+
+
 
 function checkBudgetAlerts() {
     const alertBox = document.getElementById("budgetAlert");
@@ -1984,7 +2001,7 @@ function renderLineChart() {
                     fill: false
                 },
                 {
-                    label: "Net",
+                    label: "Available Funds",
                     data: netSeries,
                     borderColor: "#3b82f6",
                     tension: 0.35,
