@@ -756,7 +756,7 @@ body.dark .subtab-item:hover {
                 ">
                     Your space for organizing income, expenses, and budgets with clarity.
                     Start by creating your budgets, then add your transactions as you go.<br>
-                    With each step, you’ll build a clearer picture of your financial activity and stay in control of your money.
+                    Your dashboard updates automatically each month, helping you stay organized, understand your spending habits, and stay in control of your money.
                 </p>                
             
                 <div style="margin-top:12px; display:flex; gap:10px;">
@@ -1543,8 +1543,21 @@ function renderDashboardOverviewChart() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
+    // Get current month + year
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Filter to current month only
+    const monthlyTransactions = transactions.filter(t => {
+        if (!t.date) return false;
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    // Calculate monthly totals
     let incTotal = 0, expTotal = 0;
-    transactions.forEach(t => {
+    monthlyTransactions.forEach(t => {
         if (t.type === "income") incTotal += t.amount;
         else if (t.type === "expense") expTotal += t.amount;
     });
@@ -2067,12 +2080,25 @@ function renderBudgetInsights() {
     const panelVisible = document.getElementById("insights-budgets").offsetParent !== null;
     if (!panelVisible || !currentUser) return;
 
+    // Load budgets
     const cbStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
     const catBudgets = parseCategoryBudgets(cbStr);
 
+    // Filter to current month
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const monthlyTransactions = transactions.filter(t => {
+        if (!t.date) return false;
+        const d = new Date(t.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    // Calculate monthly category totals
     const catTotals = {};
-    transactions.forEach(t => {
-        if (t.type !== "expense" || !t.date) return;
+    monthlyTransactions.forEach(t => {
+        if (t.type !== "expense") return;
         const cat = t.category || "Other";
         catTotals[cat] = (catTotals[cat] || 0) + t.amount;
     });
@@ -2099,7 +2125,7 @@ function renderBudgetInsights() {
                         backgroundColor: "#4a6cf7"
                     },
                     {
-                        label: "Spent",
+                        label: "Spent (This Month)",
                         data: spent,
                         backgroundColor: "#ef4444"
                     }
@@ -2118,7 +2144,7 @@ function renderBudgetInsights() {
         breakdown.innerHTML = "No budgets set.";
     } else {
         breakdown.innerHTML = labels.map(cat => {
-            return `${cat}: $${(catTotals[cat] || 0).toFixed(2)} / $${catBudgets[cat].toFixed(2)}`;
+            return `$${(catTotals[cat] || 0).toFixed(2)} / $${catBudgets[cat].toFixed(2)}`;
         }).join("<br>");
     }
 }
