@@ -125,6 +125,59 @@ button:hover {
     gap: 10px;
 }
 
+
+.budget-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;              /* controls spacing between amount and dots */
+    white-space: nowrap;
+    margin: 4px 0;
+    width: fit-content;    /* keeps row tight */
+}
+
+
+.budget-menu-trigger {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: var(--text);
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    line-height: 1;          /* removes extra vertical space */
+    display: inline-flex;    /* aligns with text baseline */
+    align-items: center;     /* centers the ⋮ vertically */
+    vertical-align: middle;  /* aligns with the text baseline */
+}
+
+
+.budget-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: var(--shadow);
+    padding: 6px 0;
+    z-index: 999;
+    white-space: nowrap;
+}
+
+.budget-menu div {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.budget-menu div:hover {
+    background: var(--sidebar-hover);
+    color: white;
+}
+
 /* Dark mode toggle */
 .theme-toggle {
     width: 36px;
@@ -537,6 +590,53 @@ body.dark .subtab-item:hover {
     cursor: pointer;
     font-size: 20px;
 }
+
+.intro-page {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+}
+
+.intro-box {
+    background: var(--bg-card);
+    padding: 40px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.intro-box h1 {
+    margin-bottom: 10px;
+    font-size: 28px;
+}
+
+.intro-box p {
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+#introStartBtn {
+    margin-top: 20px;
+    padding: 12px 20px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+#introStartBtn:hover {
+    background: var(--primary-dark);
+}
+
 </style>
 </head>
 
@@ -578,6 +678,7 @@ body.dark .subtab-item:hover {
             </div>
         </div>
     </div>
+    
 
     <div class="container">
 
@@ -585,7 +686,8 @@ body.dark .subtab-item:hover {
         <aside class="sidebar">
             <div class="nav-item" onclick="show('dashboard')">Dashboard</div>
             <div class="nav-item" onclick="show('transactions')">Transactions</div>
-            <div class="nav-item" onclick="show('add')">Add</div>
+            <div class="nav-item" onclick="show('createBudget')">Create Budget</div>
+            <div class="nav-item" onclick="show('add')">Add Transaction</div>
             <div class="nav-item" onclick="show('insights')">Insights</div>
             <div class="nav-item" onclick="show('settings')">Settings</div>
             <div class="nav-item" onclick="logout()">Logout</div>
@@ -597,6 +699,31 @@ body.dark .subtab-item:hover {
             <!-- DASHBOARD -->
             <section id="dashboard" class="section">
                 <h2>Dashboard</h2>
+
+                <div id="introPanel" style="
+                background:var(--bg-card);
+                padding:20px;
+                border-radius:12px;
+                box-shadow:var(--shadow);
+                margin-bottom:20px;
+            ">
+                <h3 style="margin-bottom:6px;">Welcome to SpendWise</h3>
+
+                <p style="
+                    color:var(--text-muted);
+                    font-size:14px;
+                    line-height:1.6;
+                    margin:0;
+                ">
+                    Your personal hub for managing income, expenses, and budgets with clarity and precision.
+                    Stay informed, review your financial activity, and update your budgets or transactions whenever you need.
+                </p>                
+            
+                <div style="margin-top:12px; display:flex; gap:10px;">
+                    <button onclick="show('createBudget')" style="width:auto;">Create Budget</button>
+                    <button onclick="show('add')" style="width:auto;">Add Transaction</button>
+                </div>
+            </div>
 
                 <!-- Welcome banner -->
                 <div id="welcomeBanner" style="
@@ -675,6 +802,32 @@ body.dark .subtab-item:hover {
                     </div>
                 </div>
             </section>
+
+
+            <!-- CREATE BUDGET -->
+            <section id="createBudget" class="section">
+            <h2>Create Budget</h2>
+
+            <div style="background:var(--bg-card); padding:20px; border-radius:12px; box-shadow:var(--shadow); margin-bottom:20px;">
+                <h3>Monthly Budget</h3>
+                <input id="monthlyBudget" type="number" placeholder="Monthly budget">
+                <button onclick="saveMonthlyBudget()">Save</button>
+
+                <h3 style="margin-top:20px;">Category Budgets</h3>
+                <p class="small">Format: Food: 300, Shopping: 200</p>
+                <input id="categoryBudgets" placeholder="Food: 300, Shopping: 200">
+                <button onclick="saveCategoryBudgets()">Save</button>
+            </div>
+
+            <!-- Add summary box so user sees saved budgets -->
+            <div style="background:var(--bg-card); padding:20px; border-radius:12px; box-shadow:var(--shadow);">
+                <h3 style="margin-top:0;">Saved Budgets</h3>
+                <div id="createBudgetSummary" style="font-size:14px; line-height:1.5;">
+                    No budgets set.
+                </div>
+            </div>
+        </section>
+
 
             <!-- TRANSACTIONS -->
             <section id="transactions" class="section">
@@ -757,7 +910,6 @@ body.dark .subtab-item:hover {
                 <div class="subtab-container">
                     <div class="subtab-menu">
                         <div class="subtab-item active" data-settings-tab="account" onclick="switchSettings('account')">Account</div>
-                        <div class="subtab-item" data-settings-tab="budgets" onclick="switchSettings('budgets')">Budgets</div>
                         <div class="subtab-item" data-settings-tab="appearance" onclick="switchSettings('appearance')">Appearance</div>
                     </div>
                     <div class="subtab-content">
@@ -781,15 +933,6 @@ body.dark .subtab-item:hover {
                             <button id="deleteBtn" style="background:#e11d48;" onclick="deleteAccount()">
                                 Delete Account
                             </button>
-                        </div>
-                        <div id="settings-budgets" class="settings-panel">
-                            <h3>Monthly Budget</h3>
-                            <input id="monthlyBudget" type="number" placeholder="Monthly budget">
-                            <button onclick="saveMonthlyBudget()">Save</button>
-                            <h3 style="margin-top:20px;">Category Budgets</h3>
-                            <p class="small">Format: Food: 300, Shopping: 200</p>
-                            <input id="categoryBudgets" placeholder="Food: 300, Shopping: 200">
-                            <button onclick="saveCategoryBudgets()">Save</button>
                         </div>
                         <div id="settings-appearance" class="settings-panel">
                             <h3>Appearance</h3>
@@ -1002,7 +1145,9 @@ function show(id) {
     if (section) section.classList.add("active");
 
     if (id === "insights") renderAllCharts();
+    if (id === "createBudget") renderCreateBudgetSummary();
 }
+
 
 function switchInsights(panel) {
     document.querySelectorAll("[data-insights-tab]").forEach(i => i.classList.remove("active"));
@@ -1118,6 +1263,20 @@ function renderTransactions() {
     const list = document.getElementById("list");
     if (!list) return;
 
+    // If no transactions, show empty state with button
+    if (!transactions || transactions.length === 0) {
+    list.innerHTML = `
+        <div style="text-align:center; padding:25px; color:var(--text-muted);">
+            <p style="margin-bottom:15px; font-style:italic;">
+                No transactions added yet.
+            </p>
+        </div>
+    `   ;
+        return;
+    }
+
+
+    // Otherwise render the list
     list.innerHTML = "";
     transactions.forEach((t, idx) => {
         const sign = t.type === "income" ? "+" : "-";
@@ -1314,6 +1473,7 @@ function parseCategoryBudgets(str) {
     return result;
 }
 
+
 function saveMonthlyBudget() {
     if (!currentUser) return;
     const val = document.getElementById("monthlyBudget").value;
@@ -1325,17 +1485,78 @@ function saveMonthlyBudget() {
     showPopup("Monthly budget saved");
 
     renderBudgetSummary();
+    renderCreateBudgetSummary();
     checkBudgetAlerts();
 }
 
 function saveCategoryBudgets() {
     if (!currentUser) return;
-    const val = document.getElementById("categoryBudgets").value;
-    localStorage.setItem(`sw-${currentUser}-categoryBudgets`, val);
+
+    const input = document.getElementById("categoryBudgets").value.trim();
+    if (!input) return;
+
+    // Parse existing budgets
+    const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const existing = parseCategoryBudgets(existingStr);
+
+    // Parse new budgets
+    const newEntries = parseCategoryBudgets(input);
+
+    // Merge (stack)
+    Object.keys(newEntries).forEach(cat => {
+        existing[cat] = newEntries[cat];
+    });
+
+    // Convert back to string format
+    const finalStr = Object.keys(existing)
+        .map(cat => `${cat}: ${existing[cat]}`)
+        .join(", ");
+
+    // Save
+    localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
+
+    // Update UI
+    renderCreateBudgetSummary();
     renderBudgetSummary();
-    renderBudgetInsights();
     checkBudgetAlerts();
+    showPopup("Category budgets updated!");
 }
+
+function deleteCategoryBudgets() {
+    if (!currentUser) return;
+
+    const input = document.getElementById("categoryBudgets").value.trim();
+    if (!input) return;
+
+    // Parse existing budgets
+    const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const existing = parseCategoryBudgets(existingStr);
+
+    // Parse categories to delete (no amounts expected)
+    const toDelete = input.split(",").map(x => x.trim()).filter(Boolean);
+
+    // Remove them
+    toDelete.forEach(cat => {
+        if (existing[cat] !== undefined) {
+            delete existing[cat];
+        }
+    });
+
+    // Convert back to string
+    const finalStr = Object.keys(existing)
+        .map(cat => `${cat}: ${existing[cat]}`)
+        .join(", ");
+
+    // Save
+    localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
+
+    // Update UI
+    renderCreateBudgetSummary();
+    renderBudgetSummary();
+    checkBudgetAlerts();
+    showPopup("Category deleted!");
+}
+
 
 function renderBudgetSummary() {
     const box = document.getElementById("budgetSummaryContent");
@@ -1387,6 +1608,50 @@ function renderBudgetSummary() {
 
     box.innerHTML = html || "No budgets set.";
 }
+
+function renderCreateBudgetSummary() {
+    if (!currentUser) return;
+
+    const box = document.getElementById("createBudgetSummary");
+    if (!box) return;
+
+    const mb = localStorage.getItem(`sw-${currentUser}-monthlyBudget`);
+    const cbStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const catBudgets = parseCategoryBudgets(cbStr);
+
+    box.innerHTML = "";
+
+    if (mb) {
+        box.innerHTML += `<strong>Monthly Budget:</strong> $${parseFloat(mb).toFixed(2)}<br><br>`;
+    }
+
+    box.innerHTML += `<strong>Category Budgets:</strong><br>`;
+
+    const entries = Object.keys(catBudgets);
+    if (entries.length === 0) {
+        box.innerHTML += "No category budgets set.";
+        return;
+    }
+
+    entries.forEach(cat => {
+        const row = document.createElement("div");
+        row.className = "budget-row";
+        row.style.position = "relative";
+
+        row.innerHTML = `
+            <span>${cat}: $${catBudgets[cat].toFixed(2)}</span>
+
+            <button class="budget-menu-trigger" onclick="toggleCatMenu(event, '${cat}')">⋮</button>
+
+            <div id="cat-menu-${cat}" class="budget-menu">
+                <div onclick="editCategoryBudget('${cat}')">Edit</div>
+                <div onclick="deleteSingleCategory('${cat}')" style="color:#e11d48;">Delete</div>
+            </div>
+`       ;
+        box.appendChild(row);
+    });
+}
+
 
 function checkBudgetAlerts() {
     const alertBox = document.getElementById("budgetAlert");
@@ -1785,25 +2050,6 @@ function toggleMenu(event, idx) {
 }
 
 
-
-function saveCategoryBudgets() {
-    const input = document.getElementById("categoryBudgets").value;
-
-    // Convert "Food: 300, Shopping: 200" → object
-    const parts = input.split(",").map(x => x.trim());
-    const budgets = {};
-
-    parts.forEach(p => {
-        const [cat, amt] = p.split(":").map(x => x.trim());
-        if (cat && amt) budgets[cat] = Number(amt);
-    });
-
-    localStorage.setItem("categoryBudgets", JSON.stringify(budgets));
-
-    showPopup("Category budgets saved!");
-}
-
-
 // Close menus when clicking anywhere else
 document.addEventListener("click", () => {
     document.querySelectorAll(".menu-dropdown").forEach(m => m.style.display = "none");
@@ -1832,6 +2078,56 @@ function cancelDelete() {
     document.getElementById("deleteConfirm").style.display = "none";
     document.getElementById("deleteBtn").style.display = "inline-block";
 }
+
+function openAddTransactionModal() {
+    // however you normally open your add-transaction UI
+    document.getElementById("addModal").classList.add("open");
+}
+
+
+function toggleCatMenu(event, cat) {
+    event.stopPropagation();
+
+    document.querySelectorAll(".budget-menu").forEach(m => m.style.display = "none");
+
+    const menu = document.getElementById(`cat-menu-${cat}`);
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
+}
+
+document.addEventListener("click", () => {
+    document.querySelectorAll(".budget-menu").forEach(m => m.style.display = "none");
+});
+
+
+function editCategoryBudget(cat) {
+    const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const existing = parseCategoryBudgets(existingStr);
+
+    const amount = existing[cat];
+    document.getElementById("categoryBudgets").value = `${cat}: ${amount}`;
+
+    showPopup(`Editing ${cat} budget`);
+}
+
+
+function deleteSingleCategory(cat) {
+    const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const existing = parseCategoryBudgets(existingStr);
+
+    delete existing[cat];
+
+    const finalStr = Object.keys(existing)
+        .map(c => `${c}: ${existing[c]}`)
+        .join(", ");
+
+    localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
+
+    renderCreateBudgetSummary();
+    renderBudgetSummary();
+    checkBudgetAlerts();
+    showPopup(`Deleted ${cat} budget`);
+}
+
 
 
 /* ---------- ON LOAD ---------- */
