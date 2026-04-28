@@ -1063,12 +1063,9 @@ function register() {
             showRegisterError(t.detail || "Error creating account.");
             return;
         }
-
-        // SUCCESS → switch back to login
-        toggleAuth();
-
-        // Success popup
-        showPopup("Account created! You can now log in.", "success");
+        // SUCCESS → log user in immediately
+        localStorage.setItem("sw-user", username);
+        window.location.href = "dashboard.html";
 
         // Clear error box
         const box = document.getElementById("registerError");
@@ -1079,31 +1076,6 @@ function register() {
         showRegisterError("Network error. Try again.");
     });
 }
-
-fetch("/create-account", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payload)
-})
-.then(async r => {
-    if (!r.ok) {
-        const text = await r.text();
-        console.error("Account creation failed:", r.status, text);
-        alert("Error creating account");
-        return;
-    }
-
-    // Save user session
-    localStorage.setItem("currentUser", payload.username);
-
-    // Redirect to dashboard
-    window.location.href = "dashboard.html";
-})
-.catch(err => {
-    console.error("Network error:", err);
-    alert("Network error");
-});
-
 
 
 function login() {
