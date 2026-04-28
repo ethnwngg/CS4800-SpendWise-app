@@ -1080,6 +1080,31 @@ function register() {
     });
 }
 
+fetch("/create-account", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+})
+.then(async r => {
+    if (!r.ok) {
+        const text = await r.text();
+        console.error("Account creation failed:", r.status, text);
+        alert("Error creating account");
+        return;
+    }
+
+    // Save user session
+    localStorage.setItem("currentUser", payload.username);
+
+    // Redirect to dashboard
+    window.location.href = "dashboard.html";
+})
+.catch(err => {
+    console.error("Network error:", err);
+    alert("Network error");
+});
+
+
 
 function login() {
     const username = document.getElementById("loginUser").value.trim();
@@ -1107,6 +1132,8 @@ function login() {
         localStorage.setItem("sw-user", currentUser);
         localStorage.setItem("sw-first", data.first || "");
         localStorage.setItem("sw-last", data.last || "");
+
+        localStorage.setItem("sw-last-page", "dashboard");
 
         document.getElementById("authPage").style.display = "none";
         document.getElementById("app").style.display = "block";
