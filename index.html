@@ -655,6 +655,12 @@ body.dark .subtab-item:hover {
     font-size: 15px;
 }
 
+.nav-item.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
 #introStartBtn {
     margin-top: 20px;
     padding: 12px 20px;
@@ -847,10 +853,18 @@ body.dark .subtab-item:hover {
                 <button onclick="saveMonthlyBudget()">Save</button>
 
                 <h3 style="margin-top:20px;">Category Budgets</h3>
-                <p class="small">Format: Food: 300, Shopping: 200</p>
-                <input id="categoryBudgets" placeholder="Food: 300, Shopping: 200">
+                <p class="small" style="margin-bottom:6px;">
+                    Enter one or more category budgets in this format:<br>
+                    <strong>Category: Amount</strong><br>
+                </p>
+            
+                <input 
+                    id="categoryBudgets" 
+                    placeholder="Example - Food: 300, Shopping: 200, Bills: 150"
+                    style="width:100%;"
+                >
                 <button onclick="saveCategoryBudgets()">Save</button>
-            </div>
+                
 
             <!-- Add summary box so user sees saved budgets -->
             <div style="background:var(--bg-card); padding:20px; border-radius:12px; box-shadow:var(--shadow);">
@@ -874,20 +888,29 @@ body.dark .subtab-item:hover {
 
             <div class="select-wrapper">
                 <select id="type" required>
-                    <option value="" disabled selected>Select type</option>
+                    <option value="" disabled selected>Select type (Income adds to available funds)</option>
                     <option value="income">Income</option>
                     <option value="expense">Expense</option>
                 </select>
-                <span class="select-asterisk">*</span>
             </div>
 
             <div id="typeError" class="error-message"></div>
-
-                <input id="amount" type="number" placeholder="Amount">
-                <input id="category" placeholder="Category">
-                <input id="desc" placeholder="Description">
-                <input id="date" type="date">
-                <button onclick="addTransaction()">Add Transaction</button>
+            
+            <input id="amount" type="number" placeholder="Amount" required>
+            <div id="amountError" class="error-message"></div>
+            
+            <select id="category">
+                <option value="" disabled selected>Select Category Budget</option>
+            </select>
+            <div id="categoryError" class="error-message"></div>            
+            
+            <input id="desc" placeholder="Description (optional)">
+            
+            <input id="date" type="date" required>
+            <div id="dateError" class="error-message"></div>
+            
+            <button onclick="addTransaction()">Add Transaction</button>
+            
             </section>
 
             <!-- INSIGHTS -->
@@ -1187,6 +1210,22 @@ function show(id) {
 
     if (id === "insights") renderAllCharts();
     if (id === "createBudget") renderCreateBudgetSummary();
+    if (id === "add") loadCategoryDropdown();
+
+    updateAddTransactionState();
+}
+
+function updateAddTransactionState() {
+    const addNav = document.querySelector(".nav-item[onclick=\"show('add')\"]");
+
+    const cbStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const hasBudgets = cbStr && cbStr.trim().length > 0;
+
+    if (hasBudgets) {
+        addNav.classList.remove("disabled");
+    } else {
+        addNav.classList.add("disabled");
+    }
 }
 
 
@@ -1251,13 +1290,34 @@ function addTransaction() {
 
     const amountVal = parseFloat(amountEl.value);
     if (!amountEl.value || isNaN(amountVal) || amountVal <= 0) {
-        alert("Please enter a valid amount.");
+        amountError.textContent = "Please enter a valid amount.";
+        amountError.style.display = "block";
+        amountEl.style.borderColor = "red";
         return;
+    } else {
+        amountError.style.display = "none";
+        amountEl.style.borderColor = "#d0d4e4";
     }
 
-    if (!dateEl.value) {
-        alert("Please select a date.");
+    if (!categoryEl.value) {
+        categoryError.textContent = "Please select a category.";
+        categoryError.style.display = "block";
+        categoryEl.style.borderColor = "red";
         return;
+    } else {
+        categoryError.style.display = "none";
+        categoryEl.style.borderColor = "#d0d4e4";
+    }
+
+
+    if (!dateEl.value) {
+        dateError.textContent = "Please select a date.";
+        dateError.style.display = "block";
+        dateEl.style.borderColor = "red";
+        return;
+    } else {
+        dateError.style.display = "none";
+        dateEl.style.borderColor = "#d0d4e4";
     }
 
     const payload = {
@@ -1294,6 +1354,33 @@ function addTransaction() {
     });
 
     showPopup("Transaction added!");
+}
+
+function loadCategoryDropdown() {
+    const categorySelect = document.getElementById("category");
+    categorySelect.innerHTML = "";
+
+    // Placeholder
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select Category Budget";
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    categorySelect.appendChild(placeholder);
+
+    // Load saved budgets
+    const cbStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    console.log("Loaded category budget string:", cbStr);
+
+    const catBudgets = parseCategoryBudgets(cbStr);
+    console.log("Parsed category budgets:", catBudgets);
+
+    Object.keys(catBudgets).forEach(cat => {
+        const option = document.createElement("option");
+        option.value = cat;
+        option.textContent = cat;
+        categorySelect.appendChild(option);
+    });
 }
 
 function loadTransactions() {
@@ -1511,17 +1598,37 @@ function renderDashboardOverviewChart() {
     });
 }
 
+
+
 function parseCategoryBudgets(str) {
+    if (!str) return {};
+
+    // Try JSON first
+    try {
+        const parsed = JSON.parse(str);
+        if (parsed && typeof parsed === "object") {
+            return parsed;
+        }
+    } catch (e) {}
+
+    // Legacy fallback: "Food: 300"
     const result = {};
-    if (!str) return result;
+
     str.split(",").forEach(part => {
         const [rawCat, rawVal] = part.split(":");
         if (!rawCat || !rawVal) return;
+
         const cat = rawCat.trim();
-        const val = parseFloat(rawVal.trim());
+
+        // Accept ANY number format
+        const cleaned = rawVal.replace(/[^0-9.\-]/g, "").trim();
+        const val = parseFloat(cleaned);
+
         if (!cat || isNaN(val)) return;
+
         result[cat] = val;
     });
+
     return result;
 }
 
@@ -1554,25 +1661,25 @@ function saveCategoryBudgets() {
     // Parse new budgets
     const newEntries = parseCategoryBudgets(input);
 
-    // Merge (stack)
+    // Merge
     Object.keys(newEntries).forEach(cat => {
         existing[cat] = newEntries[cat];
     });
 
-    // Convert back to string format
+    // Save in legacy format: "Food: 300, Shopping: 150"
     const finalStr = Object.keys(existing)
         .map(cat => `${cat}: ${existing[cat]}`)
         .join(", ");
 
-    // Save
     localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
 
-    // Update UI
     renderCreateBudgetSummary();
     renderBudgetSummary();
     checkBudgetAlerts();
+    updateAddTransactionState();
     showPopup("Category budgets updated!");
 }
+
 
 function deleteCategoryBudgets() {
     if (!currentUser) return;
@@ -2205,4 +2312,3 @@ window.onload = function() {
 </script>
 
 </body>
-</html>
