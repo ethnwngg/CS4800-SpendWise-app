@@ -559,6 +559,39 @@ body.dark .subtab-item:hover {
     cursor: pointer;
 }
 
+.select-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.select-wrapper select {
+    width: 100%;
+    padding-left: 10px;
+}
+
+/* Asterisk positioned right after the text */
+.select-asterisk {
+    position: absolute;
+    left: 85px; /* adjust this to match your text width */
+    top: 50%;
+    transform: translateY(-50%);
+    color: red;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+
+.required {
+    color: red;
+    font-weight: bold;
+}
+
+.error-message {
+    color: #dc2626;
+    font-size: 13px;
+    margin-top: 4px;
+    display: none;
+}
 
 
 /* MODAL */
@@ -838,10 +871,18 @@ body.dark .subtab-item:hover {
             <!-- ADD -->
             <section id="add" class="section">
                 <h2>Add Transaction</h2>
-                <select id="type">
+
+            <div class="select-wrapper">
+                <select id="type" required>
+                    <option value="" disabled selected>Select type</option>
                     <option value="income">Income</option>
                     <option value="expense">Expense</option>
                 </select>
+                <span class="select-asterisk">*</span>
+            </div>
+
+            <div id="typeError" class="error-message"></div>
+
                 <input id="amount" type="number" placeholder="Amount">
                 <input id="category" placeholder="Category">
                 <input id="desc" placeholder="Description">
@@ -1189,6 +1230,17 @@ function addTransaction() {
     if (!currentUser) {
         alert("You are not logged in.");
         return;
+    }
+
+    const type = document.getElementById("type").value;
+    const typeError = document.getElementById("typeError");
+
+    if (!type) {
+        typeError.textContent = "Please select Income or Expense.";
+        typeError.style.display = "block";
+        return;
+    } else {
+        typeError.style.display = "none";
     }
 
     const amountEl = document.getElementById("amount");
