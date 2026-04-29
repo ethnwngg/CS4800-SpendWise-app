@@ -761,6 +761,7 @@ body.dark .subtab-item:hover {
             
                 <div style="margin-top:12px; display:flex; gap:10px;">
                     <button onclick="show('createBudget')" style="width:auto;">Create Budget</button>
+                    <button onclick="dismissIntro()" style="width:auto; background:#ddd; color:#333;">Dismiss</button>
                 </div>
             </div>
 
@@ -831,7 +832,7 @@ body.dark .subtab-item:hover {
             
                 <input 
                     id="categoryBudgets" 
-                    placeholder="Example - Food: 300, Shopping: 200, Bills: 150"
+                    placeholder="e.g. Food: 300, Shopping: 200, Bills: 150"
                     style="width:100%;"
                 >
                 <button onclick="saveCategoryBudgets()">Save</button>
@@ -1107,6 +1108,8 @@ function login() {
 
         localStorage.setItem("sw-last-page", "dashboard");
 
+        sessionStorage.removeItem("sw-hideIntroPanel");
+
         document.getElementById("authPage").style.display = "none";
         document.getElementById("app").style.display = "block";
 
@@ -1178,8 +1181,12 @@ function show(id) {
     const section = document.getElementById(id);
     if (section) section.classList.add("active");
 
+    if (id === "dashboard") loadDashboard();
     if (id === "insights") renderAllCharts();
-    if (id === "createBudget") renderCreateBudgetSummary();
+    if (id === "createBudget"){
+        renderCreateBudgetSummary();
+        clearBudgetInputs();
+    } 
     if (id === "add") loadCategoryDropdown();
 
     updateAddTransactionState();
@@ -1197,6 +1204,28 @@ function updateAddTransactionState() {
         addNav.classList.add("disabled");
     }
 }
+
+
+function checkNewMonthNotification() {
+    const now = new Date();
+    const key = `${now.getFullYear()}-${now.getMonth()+1}`;
+
+    const last = localStorage.getItem(`sw-${currentUser}-lastSeenMonth`);
+
+    if (last !== key) {
+        showNewMonthPopup(key);
+        localStorage.setItem(`sw-${currentUser}-lastSeenMonth`, key);
+    }
+}
+
+function showNewMonthPopup(monthKey) {
+    const box = document.getElementById("newMonthNotice");
+    box.textContent = `Welcome to ${monthKey}! Your dashboard has been refreshed.`;
+    box.style.display = "block";
+
+    setTimeout(() => box.style.display = "none", 5000);
+}
+
 
 
 function switchInsights(panel) {
@@ -1602,6 +1631,31 @@ function renderDashboardOverviewChart() {
 }
 
 
+function dismissIntro() {
+    sessionStorage.setItem("sw-hideIntroPanel", "1");
+    document.getElementById("introPanel").style.display = "none";
+}
+
+
+function handleIntroPanelVisibility() {
+    const intro = document.getElementById("introPanel");
+
+    // If dismissed this session → hide
+    if (sessionStorage.getItem("sw-hideIntroPanel") === "1") {
+        intro.style.display = "none";
+    } else {
+        intro.style.display = "block";
+    }
+}
+
+
+function loadDashboard() {
+    handleIntroPanelVisibility();
+    checkNewMonthNotification();
+    renderAllCharts();
+}
+
+
 function parseCategoryBudgets(str) {
     if (!str) return {};
 
@@ -1648,6 +1702,7 @@ function saveMonthlyBudget() {
     renderBudgetSummary();
     renderCreateBudgetSummary();
     checkBudgetAlerts();
+    clearBudgetInputs()
 }
 
 function saveCategoryBudgets() {
@@ -1680,6 +1735,8 @@ function saveCategoryBudgets() {
     checkBudgetAlerts();
     updateAddTransactionState();
     showPopup("Category budgets updated!");
+
+    clearBudgetInputs()
 }
 
 
@@ -1716,6 +1773,19 @@ function deleteCategoryBudgets() {
     renderBudgetSummary();
     checkBudgetAlerts();
     showPopup("Category deleted!");
+}
+
+
+function clearBudgetInputs() {
+    // Clear monthly budget input
+    const monthly = document.getElementById("monthlyBudget");
+    monthly.value = "";
+    monthly.placeholder = "Monthly budget";
+
+    // Clear category budgets input
+    const cat = document.getElementById("categoryBudgets");
+    cat.value = "";
+    cat.placeholder = "e.g. Food: 300, Shopping: 200, Bills: 150";
 }
 
 
