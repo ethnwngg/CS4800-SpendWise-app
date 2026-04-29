@@ -377,6 +377,12 @@ body.dark .theme-toggle-circle {
     color: #3730a3;
 }
 
+.success-message {
+    color: #22c55e; 
+    font-weight: 600;
+    margin-top: 8px;
+}
+
 .transaction-btn.delete {
     background: #fee2e2;
     color: #b91c1c;
@@ -1064,10 +1070,15 @@ function register() {
             showRegisterError(t.detail || "Error creating account.");
             return;
         }
-        // SUCCESS → log user in immediately
-        localStorage.setItem("sw-user", username);
-        window.location.href = "dashboard.html";
+       
+        toggleAuth();
 
+        // Show success message
+        const loginBox = document.getElementById("loginError");
+        loginBox.textContent = "Account created! Please log in.";
+        loginBox.className = "success-message";
+        loginBox.style.display = "block";
+      
         // Clear error box
         const box = document.getElementById("registerError");
         box.style.display = "none";
