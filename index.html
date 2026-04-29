@@ -1229,6 +1229,8 @@ function register() {
         loginBox.textContent = "Account created! Please log in.";
         loginBox.className = "success-message";
         loginBox.style.display = "block";
+
+        localStorage.setItem("justRegistered", "true");
       
         // Clear error box
         const box = document.getElementById("registerError");
@@ -1239,6 +1241,8 @@ function register() {
         showRegisterError("Network error. Try again.");
     });
 }
+
+
 
 function saveIncome() {
     const income = document.getElementById("incomeInput").value.trim();
@@ -1321,6 +1325,9 @@ function login() {
     });
 }
 
+function resetMonthlyData() {
+    console.log("resetMonthlyData() placeholder");
+}
 
 function showLoginError(msg) {
     const box = document.getElementById("loginError");
@@ -1378,12 +1385,21 @@ function show(id) {
     const section = document.getElementById(id);
     if (section) section.classList.add("active");
 
-    if (id === "dashboard") loadDashboard();
+    if (id === "dashboard") {
+        loadDashboard();
+
+        // Show income popup if user just registered
+        if (localStorage.getItem("justRegistered") === "true") {
+            openIncomePopup();
+            localStorage.removeItem("justRegistered");
+        }
+    }
+
     if (id === "insights") renderAllCharts();
-    if (id === "createBudget"){
+    if (id === "createBudget") {
         renderCreateBudgetSummary();
         clearBudgetInputs();
-    } 
+    }
     if (id === "add") loadCategoryDropdown();
 
     updateAddTransactionState();
