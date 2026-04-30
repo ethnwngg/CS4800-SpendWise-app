@@ -570,14 +570,14 @@ body.dark .subtab-item:hover {
     border-radius: 6px;
     cursor: pointer;
 }
-  
+
 
 .confirm-delete-btn:hover {
     background-color: #dc2626;
     color: white;
     cursor: pointer;
 }
-  
+
 
 .select-wrapper {
     position: relative;
@@ -1333,16 +1333,6 @@ function login() {
     });
 }
 
-function resetMonthlyData() {
-    console.log("resetMonthlyData() placeholder");
-}
-
-function showLoginError(msg) {
-    const box = document.getElementById("loginError");
-    box.textContent = msg;
-    box.style.display = "block";
-}
-
 
 function logout() {
     currentUser = null;
@@ -1861,7 +1851,6 @@ function renderDashboardOverviewChart() {
         return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
     });
 
-    // ⭐ Load REAL monthly income from localStorage
     const user = localStorage.getItem("sw-user");
     const income = Number(localStorage.getItem(`sw-${user}-income`) || 0);
 
@@ -2012,13 +2001,16 @@ function saveCategoryBudgets() {
 
     localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
 
+    const categoryList = Object.keys(existing);
+    localStorage.setItem(`sw-${currentUser}-categories`, JSON.stringify(categoryList));
+
     renderCreateBudgetSummary();
     renderBudgetSummary();
     checkBudgetAlerts();
     updateAddTransactionState();
     showPopup("Category budgets updated!");
 
-    clearBudgetInputs()
+    clearBudgetInputs();
 }
 
 
@@ -2363,7 +2355,7 @@ function renderBarChart() {
         }
     });
 }
-  
+
 
 function renderLineChart() {
     const panelVisible = document.getElementById("insights-trends").offsetParent !== null;
@@ -2517,6 +2509,7 @@ function renderBudgetInsights() {
     }
 }
 
+
 function updateDashboardValues() {
     const user = localStorage.getItem("sw-user");
 
@@ -2551,6 +2544,48 @@ function updateDashboardValues() {
     if (netCard) netCard.textContent = `$${(income - expTotal).toLocaleString()}`;
 
     return { income, budget };
+}
+
+
+
+function resetMonthlyData() {
+    const user = currentUser;
+
+    // Reset total spent
+    localStorage.setItem(`sw-${user}-spent`, "0");
+
+    // Load all categories dynamically
+    const categories = JSON.parse(localStorage.getItem(`sw-${user}-categories`) || "[]");
+
+    // Reset spending for every category the user has
+    categories.forEach(cat => {
+        localStorage.setItem(`sw-${user}-spent-${cat}`, "0");
+    });
+
+    // Refresh dashboard
+    if (typeof updateDashboardValues === "function") updateDashboardValues();
+    if (typeof renderAllCharts === "function") renderAllCharts();
+}
+
+
+function addCategory(name) {
+    const user = localStorage.getItem("sw-user");
+    const key = `sw-${user}-categories`;
+
+    const list = JSON.parse(localStorage.getItem(key) || "[]");
+
+    if (!list.includes(name)) {
+        list.push(name);
+        localStorage.setItem(key, JSON.stringify(list));
+    }
+}
+
+
+
+function showLoginError(msg) {
+    const box = document.getElementById("loginError");
+    box.textContent = msg;
+    box.style.display = "block";
 }
 
 
