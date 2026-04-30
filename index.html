@@ -856,7 +856,10 @@ body.dark .subtab-item:hover {
                     <div class="step-number">4</div>
                     <div class="step-content">
                         <h3>Track Your Progress</h3>
-                        <p>See real‑time insights: category totals, remaining budgets, and your available balance.</p>
+                        <p>See real‑time insights like category totals, remaining budgets, and your available balance.
+                            Your Monthly Budget and saved Category Budgets appear in the Budget Summary at the bottom of the Dashboard. 
+                            The Monthly Budget lets you track how much you’ve spent and how much remains, while Category Budgets can be edited or deleted using the three‑dot menu (⋮) next to each one.
+                        </p>
                     </div>
                 </div>
             
@@ -2099,15 +2102,31 @@ function renderBudgetSummary() {
 
     if (Object.keys(catBudgets).length > 0) {
         html += `<strong>Category Budgets:</strong><br>`;
+
         Object.keys(catBudgets).forEach(cat => {
             const limit = catBudgets[cat];
             const spent = catTotals[cat] || 0;
-            html += `${cat}: $${spent.toFixed(2)} / $${limit.toFixed(2)}<br>`;
+
+            html += `
+                <div class="budget-row" 
+                     style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; position:relative;">
+
+                    <span>${cat}: $${spent.toFixed(2)} / $${limit.toFixed(2)}</span>
+
+                    <button class="budget-menu-trigger" onclick="toggleDashboardCatMenu(event, '${cat}')">⋮</button>
+
+                    <div id="dash-cat-menu-${cat}" class="budget-menu">
+                        <div onclick="editCategoryBudget('${cat}')">Edit</div>
+                        <div onclick="deleteSingleCategory('${cat}')" style="color:#e11d48;">Delete</div>
+                    </div>
+                </div>
+            `;
         });
     }
 
     box.innerHTML = html || "No budgets set.";
 }
+
 
 
 function renderCreateBudgetSummary() {
@@ -2787,6 +2806,20 @@ function toggleCatMenu(event, cat) {
     const menu = document.getElementById(`cat-menu-${cat}`);
     menu.style.display = menu.style.display === "block" ? "none" : "block";
 }
+
+
+function toggleDashboardCatMenu(event, cat) {
+    event.stopPropagation();
+
+    // Close all other menus
+    document.querySelectorAll(".budget-menu").forEach(m => m.style.display = "none");
+
+    const menu = document.getElementById(`dash-cat-menu-${cat}`);
+    if (menu) {
+        menu.style.display = (menu.style.display === "block" ? "none" : "block");
+    }
+}
+
 
 document.addEventListener("click", () => {
     document.querySelectorAll(".budget-menu").forEach(m => m.style.display = "none");
