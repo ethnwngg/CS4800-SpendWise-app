@@ -2179,30 +2179,28 @@ function renderBudgetSummary() {
         html += `<strong>Category Budgets:</strong><br>`;
 
         Object.keys(catBudgets).forEach(cat => {
-            const safe = cat.replace(/\s+/g, "_");
             const limit = catBudgets[cat];
             const spent = catTotals[cat] || 0;
 
             html += `
                 <div class="budget-row" 
-                    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; position:relative;">
+                     style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; position:relative;">
 
                     <span>${cat}: $${spent.toFixed(2)} / $${limit.toFixed(2)}</span>
 
-                    <button class="budget-menu-trigger" onclick="toggleDashboardCatMenu(event, '${safe}')">⋮</button>
+                    <button class="budget-menu-trigger" onclick="toggleDashboardCatMenu(event, '${cat}')">⋮</button>
 
-                    <div id="dash-cat-menu-${safe}" class="budget-menu">
+                    <div id="dash-cat-menu-${cat}" class="budget-menu">
                         <div onclick="openEditBudgetModal('${cat}', ${limit})">Edit</div>
                         <div onclick="deleteSingleCategory('${cat}')" style="color:#e11d48;">Delete</div>
                     </div>
                 </div>
-    `       ;
+            `;
         });
     }
 
     box.innerHTML = html || "No budgets set.";
 }
-
 
 
 function renderCreateBudgetSummary() {
