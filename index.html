@@ -2302,21 +2302,35 @@ function renderPieChart() {
 }
 
 
-
-
 function renderBarChart() {
     const canvas = document.getElementById("barChart");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
+    const user = localStorage.getItem("sw-user");
+    const monthlyIncome = Number(localStorage.getItem(`sw-${user}-income`) || 0);
+
     const byMonth = {};
+
     transactions.forEach(t => {
         if (!t.date) return;
-        const d = new Date(t.date);
-        const key = `${d.getFullYear()}-${d.getMonth()+1}`;
+
+        // Safe date parsing
+        const d = new Date(t.date + "T00:00:00");
+
+        // Zero‑pad month
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const key = `${d.getFullYear()}-${month}`;
+
         if (!byMonth[key]) byMonth[key] = { income: 0, expense: 0 };
+
         if (t.type === "income") byMonth[key].income += t.amount;
         else if (t.type === "expense") byMonth[key].expense += t.amount;
+    });
+
+    // Add monthly income to every month
+    Object.keys(byMonth).forEach(key => {
+        byMonth[key].income += monthlyIncome;
     });
 
     const labels = Object.keys(byMonth).sort();
@@ -2349,6 +2363,7 @@ function renderBarChart() {
         }
     });
 }
+  
 
 function renderLineChart() {
     const panelVisible = document.getElementById("insights-trends").offsetParent !== null;
