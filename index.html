@@ -1839,25 +1839,23 @@ function renderDashboardOverviewChart() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
 
-    // Get current month + year
+    const user = localStorage.getItem("sw-user");
+    const income = Number(localStorage.getItem(`sw-${user}-income`) || 0);
+
+    // Current month + year
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // Filter to current month only
-    const monthlyTransactions = transactions.filter(t => {
-        if (!t.date) return false;
-        const d = new Date(t.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    });
-
-    const user = localStorage.getItem("sw-user");
-    const income = Number(localStorage.getItem(`sw-${user}-income`) || 0);
-
-    // Calculate expenses only
+    // Filter to current month expenses only
     let expTotal = 0;
-    monthlyTransactions.forEach(t => {
-        if (t.type === "expense") expTotal += t.amount;
+    transactions.forEach(t => {
+        if (t.type !== "expense" || !t.date) return;
+
+        const d = new Date(t.date);
+        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+            expTotal += t.amount;
+        }
     });
 
     const availableFunds = Math.max(income - expTotal, 0);
@@ -1865,7 +1863,6 @@ function renderDashboardOverviewChart() {
     // Destroy old chart if exists
     if (dashboardOverviewChart) dashboardOverviewChart.destroy();
 
-    // Create new chart
     dashboardOverviewChart = new Chart(ctx, {
         type: "doughnut",
         data: {
@@ -1875,10 +1872,7 @@ function renderDashboardOverviewChart() {
                     expTotal,
                     availableFunds <= 0 ? 0.0001 : availableFunds
                 ],
-                backgroundColor: [
-                    "#ef4444", // red
-                    "#3b82f6"  // blue
-                ]
+                backgroundColor: ["#ef4444", "#3b82f6"]
             }]
         },
         options: {
@@ -1900,6 +1894,7 @@ function renderDashboardOverviewChart() {
         plugins: [centerTextPlugin]
     });
 }
+
 
 
 function dismissIntro() {
@@ -2240,6 +2235,9 @@ function checkBudgetAlerts() {
 /* ---------- INSIGHTS CHARTS ---------- */
 
 function renderPieChart() {
+    const user = localStorage.getItem("sw-user");
+    const allowedCategories = JSON.parse(localStorage.getItem(`sw-${user}-categories`) || "[]");
+
     const canvas = document.getElementById("pieChart");
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -2247,10 +2245,11 @@ function renderPieChart() {
     // Build category totals
     const categoryTotals = {};
     transactions.forEach(t => {
-        if (t.type === "expense") {
-            const cat = t.category || "Other";
-            categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
-        }
+    if (t.type !== "expense") return;
+    if (!allowedCategories.includes(t.category)) return;
+
+    const cat = t.category;
+    categoryTotals[cat] = (categoryTotals[cat] || 0) + t.amount;
     });
 
     const labels = Object.keys(categoryTotals);
@@ -2358,6 +2357,9 @@ function renderBarChart() {
 
 
 function renderLineChart() {
+    const user = localStorage.getItem("sw-user");
+    const allowedCategories = JSON.parse(localStorage.getItem(`sw-${user}-categories`) || "[]");
+
     const panelVisible = document.getElementById("insights-trends").offsetParent !== null;
     if (!panelVisible) return;
 
@@ -2371,6 +2373,7 @@ function renderLineChart() {
         const d = t.date;
         const cat = t.category || "Other";
 
+        if (!allowedCategories.includes(cat)) return;
         categories.add(cat);
 
         if (!byDate[d]) byDate[d] = {};
@@ -2802,21 +2805,34 @@ function editCategoryBudget(cat) {
 
 
 function deleteSingleCategory(cat) {
+    if (!currentUser) return;
+
+    // 1. Remove from budgets
     const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
     const existing = parseCategoryBudgets(existingStr);
-
     delete existing[cat];
 
     const finalStr = Object.keys(existing)
         .map(c => `${c}: ${existing[c]}`)
         .join(", ");
-
     localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
 
+    // 2. Remove from category list
+    const listKey = `sw-${currentUser}-categories`;
+    const list = JSON.parse(localStorage.getItem(listKey) || "[]");
+    const newList = list.filter(c => c !== cat);
+    localStorage.setItem(listKey, JSON.stringify(newList));
+
+    // 3. Remove spent key
+    localStorage.removeItem(`sw-${currentUser}-spent-${cat}`);
+
+    // 4. Refresh UI
     renderCreateBudgetSummary();
     renderBudgetSummary();
     checkBudgetAlerts();
-    showPopup(`Deleted ${cat} budget`);
+    if (typeof renderAllCharts === "function") renderAllCharts();
+
+    showPopup("Category deleted!");
 }
 
 
