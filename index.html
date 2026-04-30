@@ -846,7 +846,7 @@ body.dark .subtab-item:hover {
                     <div class="step-content">
                         <h3>Log Your Spending</h3>
                         <p>
-                            Add transactions as you go to track your spending. You can edit or delete any transaction from the Transactions tab.<br><br>  
+                            Add transactions as you go to track your spending. You can edit or delete any transaction from the Transactions tab.<br><br> 
                             <strong>Note:</strong> The “Add Transaction” button is grayed out until you create at least one budget.
                         </p>
                     </div>
@@ -1167,7 +1167,24 @@ body.dark .subtab-item:hover {
     </div>
 </div>
 
+<!-- Edit Budget Modal -->
+<div class="modal-backdrop" id="editBudgetModalBackdrop" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Edit Budget</h3>
+            <span class="modal-close" onclick="closeEditBudgetModal()">&times;</span>
+        </div>
+
+        <input id="editBudgetCategory" placeholder="Category">
+        <input id="editBudgetAmount" type="number" placeholder="Amount">
+
+        <button onclick="saveBudgetEdit()">Save</button>
+    </div>
+</div>
+
+
 <script>
+
 let currentUser = null;
 let transactions = [];
 let editIndex = null;
@@ -1716,10 +1733,24 @@ function openEditModal(idx) {
     document.getElementById("editModalBackdrop").style.display = "flex";
 }
 
+
 function closeEditModal() {
     document.getElementById("editModalBackdrop").style.display = "none";
     editIndex = null;
 }
+
+
+function openEditBudgetModal(category, amount) {
+    document.getElementById("editBudgetCategory").value = category;
+    document.getElementById("editBudgetAmount").value = amount;
+
+    document.getElementById("editBudgetModalBackdrop").style.display = "flex";
+}
+
+function closeEditBudgetModal() {
+    document.getElementById("editBudgetModalBackdrop").style.display = "none";
+}
+
 
 function saveEdit() {
     if (editIndex === null) return;
@@ -1769,6 +1800,50 @@ function saveEdit() {
         alert("Error saving changes");
     });
 }
+
+function saveBudgetEdit() {
+    const oldCategory = document.getElementById("editBudgetCategory").getAttribute("data-old")
+        || document.getElementById("editBudgetCategory").value.trim();
+
+    const newCategory = document.getElementById("editBudgetCategory").value.trim();
+    const newAmount = parseFloat(document.getElementById("editBudgetAmount").value);
+
+    if (!newCategory) {
+        showPopup("Category cannot be empty");
+        return;
+    }
+    if (isNaN(newAmount) || newAmount <= 0) {
+        showPopup("Enter a valid amount");
+        return;
+    }
+
+    // Load existing budgets
+    const existingStr = localStorage.getItem(`sw-${currentUser}-categoryBudgets`);
+    const existing = parseCategoryBudgets(existingStr);
+
+    // Remove old category if renamed
+    if (oldCategory !== newCategory) {
+        delete existing[oldCategory];
+    }
+
+    // Save updated category + amount
+    existing[newCategory] = newAmount;
+
+    // Convert back to string format
+    const finalStr = Object.keys(existing)
+        .map(cat => `${cat}: ${existing[cat]}`)
+        .join(", ");
+
+    localStorage.setItem(`sw-${currentUser}-categoryBudgets`, finalStr);
+
+    // Refresh UI
+    renderBudgetSummary();
+    checkBudgetAlerts();
+
+    closeEditBudgetModal();
+    showPopup("Budget updated!");
+}
+
 
 /* ---------- DASHBOARD & BUDGETS ---------- */
 
@@ -2116,7 +2191,7 @@ function renderBudgetSummary() {
                     <button class="budget-menu-trigger" onclick="toggleDashboardCatMenu(event, '${cat}')">⋮</button>
 
                     <div id="dash-cat-menu-${cat}" class="budget-menu">
-                        <div onclick="editCategoryBudget('${cat}')">Edit</div>
+                        <div onclick="openEditBudgetModal('${cat}', ${limit})">Edit</div>
                         <div onclick="deleteSingleCategory('${cat}')" style="color:#e11d48;">Delete</div>
                     </div>
                 </div>
@@ -2831,10 +2906,15 @@ function editCategoryBudget(cat) {
     const existing = parseCategoryBudgets(existingStr);
 
     const amount = existing[cat];
-    document.getElementById("categoryBudgets").value = `${cat}: ${amount}`;
 
-    showPopup(`Editing ${cat} budget`);
+    // Fill modal fields
+    document.getElementById("editBudgetCategory").value = cat;
+    document.getElementById("editBudgetAmount").value = amount;
+
+    // Open modal
+    document.getElementById("editBudgetModalBackdrop").style.display = "flex";
 }
+
 
 
 function deleteSingleCategory(cat) {
